@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: finanzas-kotly
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT
+    disk:
+      name: finanzas-db
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: /data/finanzas.db

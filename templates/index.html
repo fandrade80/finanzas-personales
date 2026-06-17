@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finanzas Personales</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+.topbar{background:#1a1a1a;color:#fff;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-size:15px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.save-btn{padding:5px 14px;background:#fff;color:#1a1a1a;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer}
+.save-btn:hover{background:#e5e5e0}
+.logout{font-size:12px;color:#aaa;text-decoration:none}
+.logout:hover{color:#fff}
+.container{max-width:800px;margin:0 auto;padding:1.5rem 1rem}
+.sec-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.card{background:#fff;border:1px solid #e5e5e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0ec}
+.row:last-of-type{border-bottom:none}
+.inp{padding:5px 8px;border:1px solid #e0e0da;border-radius:6px;background:#fafafa;color:#1a1a1a;font-size:13px;font-family:inherit}
+.inp:focus{outline:none;border-color:#999;background:#fff}
+.inp-label{flex:1;min-width:0}
+.inp-label input{width:100%}
+.inp-num{width:120px;text-align:right}
+.inp-date{width:135px;font-size:12px}
+.inp-int{width:58px;text-align:right}
+.chk-liq{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;white-space:nowrap;cursor:pointer}
+.chk-liq input{width:14px;height:14px;accent-color:#16a34a;cursor:pointer}
+.btn-del{background:none;border:none;cursor:pointer;color:#dc2626;padding:3px 6px;border-radius:6px;font-size:15px;line-height:1}
+.btn-del:hover{background:#fef2f2}
+.add-btn{display:flex;align-items:center;gap:6px;background:none;border:1px dashed #ccc;border-radius:8px;padding:6px 12px;font-size:13px;color:#888;cursor:pointer;width:100%;margin-top:8px}
+.add-btn:hover{background:#f5f5f0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.metric{background:#f5f5f0;border-radius:8px;padding:.75rem 1rem}
+.metric-label{font-size:11px;color:#888;margin-bottom:4px}
+.metric-val{font-size:18px;font-weight:600;color:#1a1a1a}
+.metric-val.g{color:#16a34a}
+.metric-val.r{color:#dc2626}
+.metric-val.b{color:#1d4ed8}
+.trm-bar{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap}
+.badge{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:500}
+.ok{background:#dcfce7;color:#15803d}
+.loading{background:#f5f5f0;color:#888}
+.err{background:#fef9c3;color:#854d0e}
+.row-hdr{display:flex;align-items:center;gap:8px;padding:2px 0 6px}
+.col-lbl{font-size:11px;color:#aaa}
+.divider{border:none;border-top:1px solid #e5e5e0;margin:1rem 0}
+.sub-title{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:.75rem}
+.tag{display:inline-flex;align-items:center;font-size:11px;padding:2px 7px;border-radius:5px;font-weight:500}
+.tag-liq{background:#dcfce7;color:#15803d}
+.tag-noliq{background:#f5f5f0;color:#888}
+.tag-int{background:#fef9c3;color:#854d0e}
+.tag-venc{background:#fef2f2;color:#b91c1c}
+.tag-prox{background:#fef9c3;color:#854d0e}
+.detail-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0ec;flex-wrap:wrap;gap:4px}
+.detail-row:last-child{border-bottom:none}
+.saved-msg{font-size:12px;color:#16a34a;opacity:0;transition:opacity .3s}
+.saved-msg.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>💰 Finanzas Personales</h1>
+  <div class="topbar-right">
+    <span id="saved-msg" class="saved-msg">✓ Guardado</span>
+    <button class="save-btn" onclick="saveData()">Guardar</button>
+    <a href="/logout" class="logout">Cerrar sesión</a>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- TRM -->
+<div class="card">
+  <div class="trm-bar">
+    <span class="sec-title" style="margin:0">TRM USD → COP</span>
+    <span id="trm-badge" class="badge loading">⟳ Consultando...</span>
+    <span id="trm-val" style="font-size:14px;font-weight:600"></span>
+    <span id="trm-ts" style="font-size:11px;color:#aaa"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-size:13px;color:#666">USDT</span>
+    <input type="number" class="inp inp-num" id="usdt-amt" value="{{ data.usdt_amount }}" oninput="recalc()" />
+    <span style="font-size:13px;color:#666">Tasa manual</span>
+    <input type="number" class="inp inp-num" id="trm-manual" value="{{ data.trm_manual }}" oninput="trmManual=Number(this.value);recalc()" />
+    <strong id="usdt-cop" style="font-size:15px;color:#1d4ed8">≈ $0</strong>
+  </div>
+</div>
+
+<!-- Cuentas -->
+<div class="card">
+  <div class="sec-title">Cuentas disponibles</div>
+  <div class="row-hdr">
+    <div class="col-lbl" style="flex:1">Cuenta</div>
+    <div class="col-lbl" style="width:120px;text-align:right">Monto</div>
+    <div class="col-lbl" style="width:58px;text-align:right">Int%</div>
+    <div class="col-lbl" style="width:80px;text-align:center">Liquidez</div>
+    <div style="width:28px"></div>
+  </div>
+  <div id="saldos-list"></div>
+  <button class="add-btn" onclick="addSaldo()">+ Agregar cuenta</button>
+</div>
+
+<!-- Pagos -->
+<div class="card">
+  <div class="sec-title">Pagos pendientes</div>
+  <div class="row-hdr">
+    <div class="col-lbl" style="flex:1">Concepto</div>
+    <div class="col-lbl" style="width:120px;text-align:right">Monto</div>
+    <div class="col-lbl" style="width:135px;text-align:center">Fecha límite</div>
+    <div style="width:28px"></div>
+  </div>
+  <div id="pagos-list"></div>
+  <button class="add-btn" onclick="addPago()">+ Agregar pago</button>
+</div>
+
+<!-- Resumen -->
+<div class="card" id="resumen-card">
+  <div class="sec-title">Resumen financiero</div>
+  <div id="resumen-content"></div>
+</div>
+
+<p style="font-size:11px;color:#bbb;text-align:center;margin-top:.5rem">
+  Último guardado: <span id="updated-at">{{ data.updated_at or '—' }}</span>
+</p>
+
+</div>
+
+<script>
+const INIT = {{ data | tojson }};
+let saldos = INIT.saldos;
+let pagos  = INIT.pagos;
+let trmLive   = 0;
+let trmManual = INIT.trm_manual || 3475;
+
+function trm(){ return trmLive > 0 ? trmLive : trmManual; }
+function fmt(n){ return '$' + Math.round(n).toLocaleString('es-CO'); }
+
+async function fetchTRM(){
+  const badge = document.getElementById('trm-badge');
+  const valEl = document.getElementById('trm-val');
+  const tsEl  = document.getElementById('trm-ts');
+  const set = (rate, label) => {
+    trmLive = Math.round(rate);
+    badge.className = 'badge ok';
+    badge.textContent = label;
+    valEl.textContent = '1 USD = ' + trmLive.toLocaleString('es-CO') + ' COP';
+    tsEl.textContent  = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('trm-manual').value = trmLive;
+    recalc();
+  };
+  try {
+    const r = await fetch('https://open.er-api.com/v6/latest/USD');
+    const d = await r.json();
+    if(d.result==='success' && d.rates?.COP){ set(d.rates.COP,'✓ En vivo'); return; }
+  } catch(e){}
+  try {
+    const r2 = await fetch('https://api.frankfurter.dev/v2/rates?base=USD&quotes=COP');
+    const d2 = await r2.json();
+    if(d2.rates?.COP){ set(d2.rates.COP,'✓ En vivo (fb)'); return; }
+  } catch(e){}
+  badge.className = 'badge err';
+  badge.textContent = '⚠ Usando tasa manual';
+  valEl.textContent = '1 USD = ' + trmManual.toLocaleString('es-CO') + ' COP';
+  recalc();
+}
+
+function renderSaldos(){
+  document.getElementById('saldos-list').innerHTML = saldos.map((s,i)=>`
+    <div class="row">
+      <div class="inp-label"><input class="inp" style="width:100%" value="${s.label}"
+        oninput="saldos[${i}].label=this.value" /></div>
+      <input type="number" class="inp inp-num" value="${s.value}"
+        oninput="saldos[${i}].value=Number(this.value);recalc()" />
+      <input type="number" class="inp inp-int" value="${s.interes}" min="0" max="100" step="0.5"
+        oninput="saldos[${i}].interes=Number(this.value);recalc()" title="Interés %" />
+      <label class="chk-liq" title="Dinero disponible de inmediato">
+        <input type="checkbox" ${s.liquido?'checked':''} onchange="saldos[${i}].liquido=this.checked;recalc()" />
+        Líquido
+      </label>
+      <button class="btn-del" onclick="saldos.splice(${i},1);renderSaldos();recalc()">🗑</button>
+    </div>`).join('');
+}
+
+function renderPagos(){
+  document.getElementById('pagos-list').innerHTML = pagos.map((p,i)=>`
+    <div class="row">
+      <div class="inp-label"><input class="inp" style="width:100%" value="${p.label}"
+        oninput="pagos[${i}].label=this.value" /></div>
+      <input type="number" class="inp inp-num" value="${p.value}"
+        oninput="pagos[${i}].value=Number(this.value);recalc()" />
+      <input type="date" class="inp inp-date" value="${p.fecha}"
+        oninput="pagos[${i}].fecha=this.value;recalc()" />
+      <button class="btn-del" onclick="pagos.splice(${i},1);renderPagos();recalc()">🗑</button>
+    </div>`).join('');
+}
+
+function addSaldo(){ saldos.push({label:'Nueva cuenta',value:0,interes:0,liquido:true}); renderSaldos(); recalc(); }
+function addPago() { pagos.push({label:'Nuevo pago',value:0,fecha:''}); renderPagos(); recalc(); }
+
+function daysDiff(f){
+  if(!f) return null;
+  const d=new Date(f+' 00:00:00'), h=new Date(); h.setHours(0,0,0,0);
+  return Math.ceil((d-h)/86400000);
+}
+
+function recalc(){
+  const usdt    = Number(document.getElementById('usdt-amt').value)||0;
+  const usdtCop = usdt * trm();
+  document.getElementById('usdt-cop').textContent = '≈ ' + fmt(usdtCop) + ' COP';
+
+  const totalBruto    = saldos.reduce((a,s)=>a+s.value,0);
+  const totalConInt   = saldos.reduce((a,s)=>a+s.value+(s.value*s.interes/100),0);
+  const totalIntereses= totalConInt - totalBruto;
+  const totalLiquido  = saldos.filter(s=>s.liquido).reduce((a,s)=>a+s.value,0);
+  const totalPagos    = pagos.reduce((a,p)=>a+p.value,0);
+  const fcfTotal      = totalBruto - totalPagos;
+  const fcfReal       = totalLiquido - totalPagos;
+
+  let pagosHTML=''; let venc=0,prox=0;
+  pagos.forEach(p=>{
+    const dias=daysDiff(p.fecha); let tag='';
+    if(dias!==null){
+      if(dias<0){  tag=`<span class="tag tag-venc">Vencido ${Math.abs(dias)}d</span>`; venc++; }
+      else if(dias<=7){ tag=`<span class="tag tag-prox">En ${dias}d</span>`; prox++; }
+      else tag=`<span style="font-size:11px;color:#aaa">En ${dias}d</span>`;
+    }
+    pagosHTML+=`<div class="detail-row"><span style="font-size:13px">${p.label}</span><div style="display:flex;align-items:center;gap:6px">${tag}<span style="font-size:13px;font-weight:600;color:#dc2626">${fmt(p.value)}</span></div></div>`;
+  });
+
+  let saldosHTML='';
+  saldos.forEach(s=>{
+    const conInt=s.value+(s.value*s.interes/100);
+    const liqTag=s.liquido?`<span class="tag tag-liq">⚡ Líquido</span>`:`<span class="tag tag-noliq">No disponible</span>`;
+    const intTag=s.interes>0?`<span class="tag tag-int">+${s.interes}% → ${fmt(s.value*s.interes/100)}</span>`:'';
+    saldosHTML+=`<div class="detail-row"><span style="font-size:13px">${s.label}</span><div style="display:flex;align-items:center;gap:5px">${liqTag}${intTag}<span style="font-size:13px;font-weight:600">${fmt(s.interes>0?conInt:s.value)}</span></div></div>`;
+  });
+
+  const alertas=(venc>0?`<span class="tag tag-venc" style="margin-right:4px">${venc} vencido(s)</span>`:'')+(prox>0?`<span class="tag tag-prox">${prox} próximo(s) ≤7d</span>`:'');
+
+  document.getElementById('resumen-content').innerHTML = `
+    <div class="sub-title">Dinero total</div>
+    <div class="grid" style="margin-bottom:.75rem">
+      <div class="metric"><div class="metric-label">Sin intereses</div><div class="metric-val">${fmt(totalBruto)}</div></div>
+      <div class="metric"><div class="metric-label">Intereses por cobrar</div><div class="metric-val b">+${fmt(totalIntereses)}</div></div>
+      <div class="metric"><div class="metric-label">Total + intereses</div><div class="metric-val">${fmt(totalConInt)}</div></div>
+    </div>
+    <div class="metric" style="margin-bottom:.75rem">
+      <div class="metric-label">⚡ Total líquido (disponible ya)</div>
+      <div class="metric-val g">${fmt(totalLiquido)}</div>
+    </div>
+    <div class="sub-title">Detalle cuentas</div>
+    ${saldosHTML}
+    <div class="divider"></div>
+    <div class="sub-title">Pagos pendientes</div>
+    ${alertas?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${alertas}</div>`:''}
+    ${pagosHTML}
+    <div style="display:flex;justify-content:flex-end;padding:6px 0;margin-top:4px;border-top:1px solid #f0f0ec">
+      <span style="font-size:13px;color:#888;margin-right:12px">Total pagos pendientes</span>
+      <span style="font-size:14px;font-weight:700;color:#dc2626">${fmt(totalPagos)}</span>
+    </div>
+    <div class="divider"></div>
+    <div class="sub-title">Free cash flow</div>
+    <div class="grid">
+      <div class="metric"><div class="metric-label">FCF (total − pagos)</div><div class="metric-val ${fcfTotal>=0?'g':'r'}">${fmt(fcfTotal)}</div></div>
+      <div class="metric"><div class="metric-label">FCF real (líquido − pagos)</div><div class="metric-val ${fcfReal>=0?'g':'r'}">${fmt(fcfReal)}</div></div>
+      <div class="metric"><div class="metric-label">USDT → COP</div><div class="metric-val b">${fmt(usdtCop)}</div></div>
+      <div class="metric"><div class="metric-label">FCF real + USDT</div><div class="metric-val ${(fcfReal+usdtCop)>=0?'g':'r'}">${fmt(fcfReal+usdtCop)}</div></div>
+    </div>`;
+}
+
+async function saveData(){
+  const payload = {
+    saldos,
+    pagos,
+    usdt_amount: Number(document.getElementById('usdt-amt').value)||0,
+    trm_manual:  Number(document.getElementById('trm-manual').value)||3475,
+  };
+  const r = await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(r.ok){
+    const msg = document.getElementById('saved-msg');
+    const ts  = document.getElementById('updated-at');
+    msg.classList.add('show');
+    ts.textContent = new Date().toLocaleString('es-CO');
+    setTimeout(()=>msg.classList.remove('show'),2500);
+  }
+}
+
+// Auto-guardar cada 60 segundos
+setInterval(saveData, 60000);
+
+renderSaldos();
+renderPagos();
+recalc();
+fetchTRM();
+</script>
+</body>
+</html>
