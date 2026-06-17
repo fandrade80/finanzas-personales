@@ -39,13 +39,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .metric-val.g{color:#16a34a}
 .metric-val.r{color:#dc2626}
 .metric-val.b{color:#1d4ed8}
-.trm-bar{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap}
-.badge{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:500}
-.ok{background:#dcfce7;color:#15803d}
-.loading{background:#f5f5f0;color:#888}
-.err{background:#fef9c3;color:#854d0e}
-.row-hdr{display:flex;align-items:center;gap:8px;padding:2px 0 6px}
-.col-lbl{font-size:11px;color:#aaa}
 .divider{border:none;border-top:1px solid #e5e5e0;margin:1rem 0}
 .sub-title{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:.75rem}
 .tag{display:inline-flex;align-items:center;font-size:11px;padding:2px 7px;border-radius:5px;font-weight:500}
@@ -75,16 +68,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- TRM -->
 <div class="card">
-  <div class="trm-bar">
-    <span class="sec-title" style="margin:0">TRM USD → COP</span>
-    <span id="trm-badge" class="badge loading">⟳ Consultando...</span>
-    <span id="trm-val" style="font-size:14px;font-weight:600"></span>
-    <span id="trm-ts" style="font-size:11px;color:#aaa"></span>
-  </div>
+  <div class="sec-title">Conversión USDT → COP</div>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <span style="font-size:13px;color:#666">USDT</span>
     <input type="number" class="inp inp-num" id="usdt-amt" value="{{ data.usdt_amount }}" oninput="recalc()" />
-    <span style="font-size:13px;color:#666">Tasa manual</span>
+    <span style="font-size:13px;color:#666">TRM (COP por USD)</span>
     <input type="number" class="inp inp-num" id="trm-manual" value="{{ data.trm_manual }}" oninput="trmManual=Number(this.value);recalc()" />
     <strong id="usdt-cop" style="font-size:15px;color:#1d4ed8">≈ $0</strong>
   </div>
@@ -133,40 +121,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const INIT = {{ data | tojson }};
 let saldos = INIT.saldos;
 let pagos  = INIT.pagos;
-let trmLive   = 0;
 let trmManual = INIT.trm_manual || 3475;
 
-function trm(){ return trmLive > 0 ? trmLive : trmManual; }
+function trm(){ return trmManual; }
 function fmt(n){ return '$' + Math.round(n).toLocaleString('es-CO'); }
 
-async function fetchTRM(){
-  const badge = document.getElementById('trm-badge');
-  const valEl = document.getElementById('trm-val');
-  const tsEl  = document.getElementById('trm-ts');
-  const set = (rate, label) => {
-    trmLive = Math.round(rate);
-    badge.className = 'badge ok';
-    badge.textContent = label;
-    valEl.textContent = '1 USD = ' + trmLive.toLocaleString('es-CO') + ' COP';
-    tsEl.textContent  = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('trm-manual').value = trmLive;
-    recalc();
-  };
-  try {
-    const r = await fetch('https://open.er-api.com/v6/latest/USD');
-    const d = await r.json();
-    if(d.result==='success' && d.rates?.COP){ set(d.rates.COP,'✓ En vivo'); return; }
-  } catch(e){}
-  try {
-    const r2 = await fetch('https://api.frankfurter.dev/v2/rates?base=USD&quotes=COP');
-    const d2 = await r2.json();
-    if(d2.rates?.COP){ set(d2.rates.COP,'✓ En vivo (fb)'); return; }
-  } catch(e){}
-  badge.className = 'badge err';
-  badge.textContent = '⚠ Usando tasa manual';
-  valEl.textContent = '1 USD = ' + trmManual.toLocaleString('es-CO') + ' COP';
-  recalc();
-}
 
 function renderSaldos(){
   document.getElementById('saldos-list').innerHTML = saldos.map((s,i)=>`
@@ -295,7 +254,6 @@ setInterval(saveData, 60000);
 renderSaldos();
 renderPagos();
 recalc();
-fetchTRM();
 </script>
 </body>
 </html>
